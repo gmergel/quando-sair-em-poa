@@ -1,5 +1,9 @@
-<?php
-
-echo "Hello World!";
-
-?>
+<?php ?>
+<html>
+	<head>
+		<title>Visu</title>
+	</head>
+	<body>
+		<div></div>
+	</body>
+</html>
