@@ -4,24 +4,36 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<title>Visu</title>
 		<style>
-			body{margin:0;padding:0;background-color: #ccc;font-family: Helvetica, Arial;}
+			body{margin:0;padding:0;background-color: #ddd;font-family: Helvetica, Arial;}
 			h1{margin-bottom:0; color: #555;text-align: center;background: url("./line.png") repeat-x 47% 54%}
 			span{background-color: white;padding: 0 12px;}
 			#container{width: 1000px;height: 680px;background-color: white;margin: 60px auto auto auto;border-radius: 5px;box-shadow: 0px 6px 13px 0px #999;padding: 1px 15px;}
+			#loader{width: 1000px;height: 680px;padding-top:200px;margin: 60px auto auto auto;}
+			#loadingbar{background-color: #dedede;    width: 600px;    height: 20px;    border-radius: 5px;    box-shadow: inset 0 1px 2px #888;    margin: auto; text-align: center}
+			#loadingstatus{position:absolute;left:900px;color: white;font-size: 16px;padding: 0;background-color: transparent;}
+			#progressbar{-webkit-transition:width 1.2s bezier-cubic(0.3,0.7, 1.0, 0.8); background-color: rgb(52, 152, 219);    width: 0px;    height: 20px;    border-radius: 5px 0px 0 5px;    box-shadow: inset 0 -1px 0 #2980b9;}
 			.icon{width: 60px;}
 			#dia{width: 38px;padding: 9px;}
+			
+			.mark{width: 12px; height: 27px; background-color: #e74c3c; border-radius: 12px 12px 0 0; position: absolute;margin-top:-10px;cursor: pointer;}
+			#mark1{margin-left: 344px;} #mark2{margin-left: 224px;} #mark3{margin-left:504px;}
+			
 			#sliderdot{width: 20px;height: 17px;background-color: #2980b9;border-radius: 6px;margin-left: 130px;margin-top: -11px;}
 			#sliderbar{background-color: #ccc;height: 5px;margin: 0px 130px 0 130px;border-radius: 42px;}
-
+			a{cursor:pointer;}
 			#controls{height: 40px;text-align: center;margin-top: 20px;width:200px;margin:auto;}
 			#btn-play,#btn-stop{display: block; background-color: rgb(52, 152, 219); width: 60px; margin: auto; padding: 5px; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; color: white;box-shadow: 0 4px #2980b9; border:0; cursor: pointer;float:left;}
 			#btn-stop{background-color:#e74c3c;box-shadow: 0 4px #c0392b;}
-			#btn-play:active,#btn-stop:active{box-shadow: 0 3px #2980b9;padding-top: 3px;}
+			#btn-play:active,#btn-prv:active,#btn-nxt:active{box-shadow: 0 3px #2980b9;padding-top: 3px;}
+			#btn-stop:active{box-shadow: 0 3px #c0392b;padding-top: 3px;}
 
 			#btn-prv, #btn-nxt{margin-right:20px;float:left;display: block; background-color: rgb(52, 152, 219); width: 30px; margin: auto 20px; padding: 5px; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; color: white;box-shadow: 0 4px #2980b9; border:0; cursor: pointer;}
 			#date{margin: auto;text-align: center;}
 
 			#options{margin: auto;width: 730px;}
+
+			#percent{width:40px;margin-top: 10px;}
+			#ratio{opacity:0.2;}
 
 		</style>
 		<script src="jquery.js"></script>
@@ -45,12 +57,13 @@
 	NMes[12] = "Dezembro";
 
 	var parsedResult = [];
-	var currentDate = 20091;
+	var currentDate = 20081;
 	var mes = NMes[1];
 
 	var opts = {
 		dia: true,
-		noite: true
+		noite: true,
+		ratio: false
 	}
 
 	function addano(dir){
@@ -209,25 +222,42 @@
 
 			//options.vAxis.viewWindowMode = 'maximized';
 			drawit();
-		});		
+		});
+
+		function loadAllYears(year){
+			if(year == 2014){ $('#loader').css('display','none'); $('#container').css('visibility','visible'); return; }
+			var dif = year-2007;
+			$('#progressbar').css('width',dif*100);
+			$('#loadingstatus').html('Loading '+year);
+			loadDataCVS(year);			
+		}
 
 		function loadDataCVS(year){
-
 			if(year == 2007 || year == 2014) return;
 
 			$.get('./reader.php?ano='+year).success(function(res){
 				parsedResult[year] = $.parseJSON(res);
-				currentDate = year+'1';
+				//currentDate = year+'1';
 				loadDataTable(parsedResult[year]);
+				setTimeout(loadAllYears(year+1),100);
 			});
 		}
 
-		function loadDataTable(jsondata){
+		$('#mark1').click(function(){
+			var a = document.createElement('a');
+			a.setAttribute('target', '_blank');
+			a.setAttribute('href', './crescimento.jpg');
+			a.click();
+		});
 
-			if(typeof jsondata === 'undefined' || !('a'+currentDate in jsondata)){
-				loadDataCVS(currentDate.toString().substr(0,4));
-				return;
-			}
+		$('#ratio').click(function(){
+			if($(this).css('opacity') == 1){ $(this).css('opacity','0.2'); opts.ratio = false; }
+			else{ $(this).css('opacity',1); opts.ratio = true; }
+
+			loadDataTable(parsedResult[currentDate.toString().substr(0,4)]);
+		});
+
+		function loadDataTable(jsondata){
 
 			var jsonResult = jsondata['a'+currentDate];
 
@@ -253,7 +283,6 @@
 						break;
 					case 'DOMINGO':
 						row = 6;
-						console.warn('aaa');
 						break;
 					default:
 						row = -1;
@@ -265,34 +294,42 @@
 					var feridosv = (opts.dia && opts.noite || (!opts.dia && !opts.noite))? jsonResult[key].Feridos : (opts.dia && !opts.noite)? jsonResult[key].DIA.Feridos : jsonResult[key].NOITE.Feridos;
 					data.setValue(row, 2, feridosv);
 
+
 					var acidentesv = (opts.dia && opts.noite || (!opts.dia && !opts.noite))? jsonResult[key].Acidentes : (opts.dia && !opts.noite)? jsonResult[key].DIA.Acidentes : jsonResult[key].NOITE.Acidentes;
 					data.setValue(row, 4, acidentesv);
-					console.log(data);
+					
+					var tempv = (opts.ratio)? (feridosv/acidentesv).toFixed(2).toString() : '';
+					data.setValue(row, 0, tempv);
+
+					console.log(tempv);
 				}
 			}
 			drawit();
 			$("#date").html(mes+" de "+currentDate.toString().substr(0,4));
 		}
 		drawit();
+		$('document').ready(loadAllYears(2008));
 	}
 
 	</script>
 	</head>
 	<body>
-		<div id="container">
-			<h1><span class="title">bla bla bla bla bla</span></h1>			
+		<div id="loader"><div id="loadingbar"><div id="loadingstatus">Loading 2008</div><div id="progressbar"></div></div></div>
+		<div id="container" style="visibility:hidden">
+			<h1><span class="title">Quando sair em Porto Alegre?</span></h1>			
 			<div id="chart_div" style="height: 380px"></div>
 			
 			<div id="controls"><button id="btn-prv"><</button><button id="btn-play" href="#" style="">Play</button><button id="btn-stop" style="display: none;" href="#">Stop</button><button id="btn-nxt">></button></div>
-			<div id="sliderarea"><div id="sliderbar"></div><div id="sliderdot"></div></div><br/>
+			<div id="sliderarea"><div id="sliderbar"></div><div id="sliderdot"></div></div>
+			<div class="mark" id="mark1"></div>
+			<div class="mark" id="mark2"></div>
+			<div class="mark" id="mark3"></div>
+			<br/>
 			<div id="date">Janeiro de 2008</div><br/>
 			
 			<div id="options">
-				<a id="btn-dianoite" href="#"><img id="dia" class="icon" src="./icons/sun.png"/><img id="noite" class="icon" src="./icons/moon.png"/></a><br/>
-				<a id="btn" href="#">Load</a><br/>
-				
-
-				<a href="#" id='seg'>Seg</a> | <a href="#">Ter</a> | <a href="#">Qua</a> | <a href="#">Qui</a><br/>
+				<a style="float:left;border-right: 1px solid #aaa;padding-right: 10px;margin-right: 10px;" id="btn-dianoite"><img id="dia" class="icon" src="./icons/sun.png"/><img id="noite" class="icon" src="./icons/moon.png"/></a>
+				<div id="separator"><a id="ratio"><img id="percent" class="icon" src="./icons/percent.png"/></a></div>
 			</div>
 		</div>
 	</body>

@@ -9,7 +9,7 @@ $count = 0;
 
 $acidentes = [];
 
-if (($handle = fopen("acidentes-".$_GET['ano'].".csv", "r")) !== FALSE) {
+if (($handle = fopen("./dados/acidentes-".$_GET['ano'].".csv", "r")) !== FALSE) {
     while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
         /*
         $num = count($data);
